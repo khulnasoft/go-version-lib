@@ -59,6 +59,17 @@ func main() {
 | `pkg/prerelease` | Pre-release comparison |
 | `pkg/reference` | Version references |
 
+## CLI
+
+A command-line tool is provided under `cmd/goversion`:
+
+```sh
+go run ./cmd/goversion/ parse 1.2.3
+go run ./cmd/goversion/ compare 1.2.3 1.2.4
+go run ./cmd/goversion/ check 1.2.3 '>=1.2.0'
+go run ./cmd/goversion/ detect 1.2.3
+```
+
 ## Development
 
 ```sh
