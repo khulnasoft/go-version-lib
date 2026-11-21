@@ -232,3 +232,73 @@ func TestRefTypeAllMethods(t *testing.T) {
 	assert.True(t, mvnRef.LessThanOrEqual(mvnRef))
 	assert.Equal(t, "1.0", mvnRef.String())
 }
+
+func TestCompareAcrossTypes(t *testing.T) {
+	// Comparing references from different ecosystems must not panic and must
+	// produce a deterministic, antisymmetric ordering.
+	a, err := reference.NewReferenceByType("1.2.3", reference.Semver)
+	require.NoError(t, err)
+	b, err := reference.NewReferenceByType("1.0.a", reference.Gem)
+	require.NoError(t, err)
+	c, err := reference.NewReference("pkg:npm/lodash@4.17.21")
+	require.NoError(t, err)
+
+	for _, pair := range [][2]reference.Reference{{a, b}, {b, a}, {a, c}, {c, b}} {
+		assert.Equal(t, -pair[0].Compare(pair[1]), pair[1].Compare(pair[0]))
+	}
+	assert.NotEqual(t, 0, a.Compare(b))
+	assert.False(t, a.Equal(b))
+}
+
+func TestDetectAll(t *testing.T) {
+	// "1.2.3" matches multiple ecosystem patterns; Detect returns only the
+	// first while DetectAll returns all of them in priority order.
+	all := reference.DetectAll("1.2.3")
+	assert.Equal(t, []reference.VersionType{
+		reference.Semver, reference.Gem, reference.NPM, reference.PEP440,
+		reference.Deb, reference.RPM, reference.Maven, reference.Cargo,
+		reference.Pub, reference.Hex, reference.NuGet,
+	}, all)
+
+	first, err := reference.Detect("1.2.3")
+	require.NoError(t, err)
+	assert.Equal(t, all[0], first)
+
+	// purl input resolves to exactly one type
+	purlAll := reference.DetectAll("pkg:npm/lodash@4.17.21")
+	assert.Equal(t, []reference.VersionType{reference.NPM}, purlAll)
+
+	// no matches
+	assert.Empty(t, reference.DetectAll("not a version"))
+}
+
+func TestNewEcosystemReferences(t *testing.T) {
+	cases := []struct {
+		in   string
+		want reference.VersionType
+	}{
+		{"pkg:cargo/serde@1.0.0", reference.Cargo},
+		{"pkg:pub/flutter@1.2.3", reference.Pub},
+		{"pkg:hex/decimal@2.0.0", reference.Hex},
+		{"pkg:nuget/newtonsoft.json@13.0.1", reference.NuGet},
+		{"v0.0.0-20191109021931-daa7c04131f5", reference.GoPseudo},
+	}
+	for _, tc := range cases {
+		t.Run(tc.in, func(t *testing.T) {
+			ref, err := reference.NewReference(tc.in)
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, ref.Type())
+			assert.NotEmpty(t, ref.String())
+			assert.Equal(t, 0, ref.Compare(ref))
+		})
+	}
+}
+
+func TestNuGetReferenceOrdering(t *testing.T) {
+	a, err := reference.NewReferenceByType("1.2.3-alpha", reference.NuGet)
+	require.NoError(t, err)
+	b, err := reference.NewReferenceByType("1.2.3", reference.NuGet)
+	require.NoError(t, err)
+	assert.True(t, a.LessThan(b))
+	assert.True(t, b.GreaterThan(a))
+}

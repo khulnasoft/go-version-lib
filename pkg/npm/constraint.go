@@ -5,8 +5,6 @@ import (
 	"regexp"
 	"strings"
 
-	"golang.org/x/xerrors"
-
 	"github.com/khulnasoft/go-version-lib/pkg/part"
 	"github.com/khulnasoft/go-version-lib/pkg/semver"
 )
@@ -62,6 +60,7 @@ type Constraints struct {
 type constraint struct {
 	version  Version
 	operator operatorFunc
+	op       string
 	original string
 }
 
@@ -77,7 +76,7 @@ func NewConstraints(v string, opts ...ConstraintOption) (Constraints, error) {
 	for _, vv := range strings.Split(v, "||") {
 		// Validate the segment
 		if !validConstraintRegexp.MatchString(vv) {
-			return Constraints{}, xerrors.Errorf("improper constraint: %s", vv)
+			return Constraints{}, fmt.Errorf("improper constraint: %s", vv)
 		}
 
 		ss := constraintRegexp.FindAllString(vv, -1)
@@ -108,12 +107,13 @@ func newConstraint(c string) (constraint, error) {
 			version: semver.New(part.Any(true), part.Any(true), part.Any(true),
 				part.NewParts("*"), ""),
 			operator: constraintOperators[""],
+			op:       "",
 		}, nil
 	}
 
 	m := constraintRegexp.FindStringSubmatch(c)
 	if m == nil {
-		return constraint{}, xerrors.Errorf("improper constraint: %s", c)
+		return constraint{}, fmt.Errorf("improper constraint: %s", c)
 	}
 
 	major := m[3]
@@ -127,6 +127,7 @@ func newConstraint(c string) (constraint, error) {
 	return constraint{
 		version:  v,
 		operator: constraintOperators[m[1]],
+		op:       m[1],
 		original: c,
 	}, nil
 }

@@ -5,7 +5,6 @@ go 1.22.0
 require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028
 )
 
 require (

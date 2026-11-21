@@ -1,10 +1,9 @@
 package gem
 
 import (
+	"errors"
 	"regexp"
 	"strings"
-
-	"golang.org/x/xerrors"
 
 	"github.com/khulnasoft/go-version-lib/pkg/part"
 )
@@ -15,7 +14,7 @@ var (
 	segmentRegexp *regexp.Regexp
 
 	// ErrInvalidSemVer is returned when a given version is invalid
-	ErrInvalidVersion = xerrors.New("invalid gem version")
+	ErrInvalidVersion = errors.New("invalid gem version")
 )
 
 const (
@@ -150,8 +149,12 @@ func (v Version) Bump() Version {
 	if last <= 1 {
 		last = 2
 	}
-	v.numericSegments = v.numericSegments[:last-1]
-	v.numericSegments[last-2] = v.numericSegments[last-2].(part.Uint64) + 1
+	// copy the segment slice: the receiver's backing array is shared with
+	// the original Version and must not be mutated
+	segs := make(part.Parts, last-1)
+	copy(segs, v.numericSegments)
+	segs[last-2] = segs[last-2].(part.Uint64) + 1
+	v.numericSegments = segs
 	v.version = v.numericSegments.String()
 
 	return v.Release()

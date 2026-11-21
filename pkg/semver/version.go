@@ -2,11 +2,10 @@ package semver
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math"
 	"regexp"
-
-	"golang.org/x/xerrors"
 
 	"github.com/khulnasoft/go-version-lib/pkg/part"
 	"github.com/khulnasoft/go-version-lib/pkg/prerelease"
@@ -14,7 +13,7 @@ import (
 
 var (
 	// ErrInvalidSemVer is returned when a given version is invalid
-	ErrInvalidSemVer = xerrors.New("invalid semantic version")
+	ErrInvalidSemVer = errors.New("invalid semantic version")
 )
 
 var versionRegex *regexp.Regexp
@@ -57,17 +56,17 @@ func Parse(v string) (Version, error) {
 
 	major, err := part.NewUint64(m[versionRegex.SubexpIndex("major")])
 	if err != nil {
-		return Version{}, xerrors.Errorf("invalid major version: %w", err)
+		return Version{}, fmt.Errorf("invalid major version: %w", err)
 	}
 
 	minor, err := part.NewUint64(m[versionRegex.SubexpIndex("minor")])
 	if err != nil {
-		return Version{}, xerrors.Errorf("invalid minor version: %w", err)
+		return Version{}, fmt.Errorf("invalid minor version: %w", err)
 	}
 
 	patch, err := part.NewUint64(m[versionRegex.SubexpIndex("patch")])
 	if err != nil {
-		return Version{}, xerrors.Errorf("invalid patch version: %w", err)
+		return Version{}, fmt.Errorf("invalid patch version: %w", err)
 	}
 
 	return Version{

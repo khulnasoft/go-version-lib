@@ -6,8 +6,6 @@ import (
 	"regexp"
 	"strings"
 
-	"golang.org/x/xerrors"
-
 	"github.com/khulnasoft/go-version-lib/pkg/part"
 )
 
@@ -101,7 +99,7 @@ func MustParse(v string) Version {
 func Parse(v string) (Version, error) {
 	matches := versionRegex.FindStringSubmatch(v)
 	if matches == nil {
-		return Version{}, xerrors.Errorf("malformed version: %s", v)
+		return Version{}, fmt.Errorf("malformed version: %s", v)
 	}
 
 	var epoch, preN, postN, devN part.Uint64
@@ -123,7 +121,7 @@ func Parse(v string) (Version, error) {
 			for _, str := range strings.Split(m, ".") {
 				val, err := part.NewUint64(str)
 				if err != nil {
-					return Version{}, xerrors.Errorf("error parsing version: %w", err)
+					return Version{}, fmt.Errorf("error parsing version: %w", err)
 				}
 
 				release = append(release, val)
@@ -148,7 +146,7 @@ func Parse(v string) (Version, error) {
 			local = strings.ToLower(m)
 		}
 		if err != nil {
-			return Version{}, xerrors.Errorf("failed to parse version (%s): %w", v, err)
+			return Version{}, fmt.Errorf("failed to parse version (%s): %w", v, err)
 		}
 	}
 
@@ -247,8 +245,9 @@ func (v Version) Compare(other Version) int {
 	k1 := v.key
 	k2 := other.key
 
-	k1.release = k1.release.Padding(len(k2.release), part.Zero)
-	k2.release = k2.release.Padding(len(k2.release), part.Zero)
+	n := max(len(k1.release), len(k2.release))
+	k1.release = k1.release.Padding(n, part.Zero)
+	k2.release = k2.release.Padding(n, part.Zero)
 
 	return k1.compare(k2)
 }

@@ -1,13 +1,12 @@
 package version
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
-
-	"golang.org/x/xerrors"
 )
 
 type operatorFunc func(v Version, spec string) bool
@@ -82,7 +81,7 @@ func NewSpecifiers(v string, opts ...SpecifierOption) (Specifiers, error) {
 
 		// Validate the segment
 		if !validConstraintRegexp.MatchString(vv) {
-			return Specifiers{}, xerrors.Errorf("improper constraint: %s", vv)
+			return Specifiers{}, fmt.Errorf("improper constraint: %s", vv)
 		}
 
 		ss := specifierRegexp.FindAllString(vv, -1)
@@ -111,7 +110,7 @@ func NewSpecifiers(v string, opts ...SpecifierOption) (Specifiers, error) {
 func newSpecifier(s string, c *conf) (specifier, error) {
 	m := specifierRegexp.FindStringSubmatch(s)
 	if m == nil {
-		return specifier{}, xerrors.Errorf("improper specifier: %s", s)
+		return specifier{}, fmt.Errorf("improper specifier: %s", s)
 	}
 
 	op := m[specifierRegexp.SubexpIndex("operator")]
@@ -139,7 +138,7 @@ func validate(op, version string, c *conf) error {
 	}
 	v, err := Parse(version)
 	if err != nil {
-		return xerrors.Errorf("version parse error (%s): %w", v, err)
+		return fmt.Errorf("version parse error (%s): %w", v, err)
 	}
 
 	allowLocal := c != nil && c.allowLocalSpecifier
@@ -147,22 +146,22 @@ func validate(op, version string, c *conf) error {
 	switch op {
 	case "", "=", "==", "!=":
 		if hasWildcard && (!v.dev.isNull() || v.local != "") {
-			return xerrors.New("the (non)equality operators don't allow to use a wild card and a dev" +
+			return errors.New("the (non)equality operators don't allow to use a wild card and a dev" +
 				" or local version together")
 		}
 	case "~=":
 		if hasWildcard {
-			return xerrors.New("a wild card is not allowed")
+			return errors.New("a wild card is not allowed")
 		} else if len(v.release) < 2 {
-			return xerrors.New("the compatible operator requires at least two digits in the release segment")
+			return errors.New("the compatible operator requires at least two digits in the release segment")
 		} else if v.local != "" && !allowLocal {
-			return xerrors.New("local versions cannot be specified")
+			return errors.New("local versions cannot be specified")
 		}
 	default:
 		if hasWildcard {
-			return xerrors.New("a wild card is not allowed")
+			return errors.New("a wild card is not allowed")
 		} else if v.local != "" && !allowLocal {
-			return xerrors.New("local versions cannot be specified")
+			return errors.New("local versions cannot be specified")
 		}
 	}
 	return nil

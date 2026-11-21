@@ -17,5 +17,20 @@ jobs:
       with:
         go-version-file: go.mod
 
-    - name: Run unit tests
-      run: go test ./...
+    - name: Check formatting
+      run: |
+        files=$(gofmt -l -s .)
+        if [ -n "$files" ]; then
+          echo "gofmt needed for:"
+          echo "$files"
+          exit 1
+        fi
+
+    - name: Run go vet
+      run: go vet ./...
+
+    - name: Run unit tests with coverage
+      run: |
+        mkdir -p .tmp
+        go test -coverprofile=.tmp/coverage.txt ./...
+        go tool cover -func=.tmp/coverage.txt | tail -1
